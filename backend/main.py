@@ -19,7 +19,8 @@ app = FastAPI(
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  
+    allow_origins=["http://localhost:3000", "https://quick-o-pedia-ai-gr4p5ky7s-priyam-guptas-projects-0d4ac92d.vercel.app",  # Your actual Vercel URL
+        "https://*.vercel.app",],  
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
