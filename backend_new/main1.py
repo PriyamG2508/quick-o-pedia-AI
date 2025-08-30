@@ -103,9 +103,9 @@ async def scrape_wikipedia_endpoint(request: ScrapeRequest):
         raise HTTPException(status_code=500, detail=f"Error scraping Wikipedia: {str(e)}")
 
 @app.post("/chat", response_model=ChatResponse, tags=["AI Chat"])
-async def chat_with_wikipedia(request: ChatRequest):
+async def chat_with_wikipedia_post(request: ChatRequest):
     """
-    Ask a question about a Wikipedia topic and get an AI-generated answer.
+    Ask a question about a Wikipedia topic and get an AI-generated answer (POST method).
     """
     # Check if GROQ API key is configured
     if not os.getenv("GROQ_API_KEY"):
@@ -128,3 +128,42 @@ async def chat_with_wikipedia(request: ChatRequest):
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
+@app.get("/chat", response_model=ChatResponse, tags=["AI Chat"])
+async def chat_with_wikipedia_get(topic: str, question: str):
+    """
+    Ask a question about a Wikipedia topic and get an AI-generated answer (GET method).
+    Example: /chat?topic=Python&question=What is Python used for?
+    """
+    # Check if GROQ API key is configured
+    if not os.getenv("GROQ_API_KEY"):
+        raise HTTPException(
+            status_code=500, 
+            detail="GROQ_API_KEY is not configured. Please set up your API key."
+        )
+    
+    # Validate parameters
+    if not topic or not topic.strip():
+        raise HTTPException(status_code=400, detail="Topic parameter is required and cannot be empty")
+    
+    if not question or not question.strip():
+        raise HTTPException(status_code=400, detail="Question parameter is required and cannot be empty")
+    
+    try:
+        answer = ask_question_langchain(topic.strip(), question.strip())
+        
+        return ChatResponse(
+            topic=topic.strip(),
+            question=question.strip(),
+            answer=answer
+        )
+    except ValueError as e:
+        if "GROQ_API_KEY" in str(e):
+            raise HTTPException(status_code=500, detail="GROQ API key configuration error")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
