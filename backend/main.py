@@ -1,12 +1,11 @@
-"""FastAPI server for Wikipedia scraper and AI chat functionality."""
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from scraper import scrape_wikipedia
 from rag import ask_question_langchain
 from pydantic import BaseModel, Field
+from typing import Optional, Union
 import os
 from dotenv import load_dotenv
-import threading
 
 # Load environment variables
 load_dotenv()
@@ -46,6 +45,11 @@ class ChatResponse(BaseModel):
     question: str = Field(..., description="The question that was asked")
     answer: str = Field(..., description="The AI-generated answer")
 
+class ChatGetResponse(BaseModel):
+    message: str
+    usage: str
+    example: dict
+
 class HealthResponse(BaseModel):
     status: str
     message: str
@@ -59,7 +63,7 @@ def read_root():
         "version": "1.0.0",
         "endpoints": {
             "scrape": "/scrape - Scrape Wikipedia content",
-            "chat": "/chat - Chat with Wikipedia content using AI",
+            "chat": "/chat - Chat with Wikipedia content using AI (GET for info, POST for chat)",
             "health": "/health - Check API health"
         }
     }
@@ -102,32 +106,64 @@ async def scrape_wikipedia_endpoint(request: ScrapeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scraping Wikipedia: {str(e)}")
 
-@app.post("/chat", response_model=ChatResponse, tags=["AI Chat"])
-async def chat_with_wikipedia(request: ChatRequest):
+@app.api_route("/chat", methods=["GET", "POST"], tags=["AI Chat"])
+async def chat_with_wikipedia(request: Request, chat_request: Optional[ChatRequest] = None):
     """
-    Ask a question about a Wikipedia topic and get an AI-generated answer.
+    Handle both GET and POST requests for chat functionality.
+    
+    - GET: Returns usage information and examples
+    - POST: Process chat request with topic and question
     """
-    # Check if GROQ API key is configured
-    if not os.getenv("GROQ_API_KEY"):
-        raise HTTPException(
-            status_code=500, 
-            detail="GROQ_API_KEY is not configured. Please set up your API key."
+    
+    # Handle GET request
+    if request.method == "GET":
+        return ChatGetResponse(
+            message="Chat endpoint is ready! Use POST method to ask questions about Wikipedia topics.",
+            usage="Send a POST request with JSON body containing 'topic' and 'question' fields.",
+            example={
+                "method": "POST",
+                "url": "/chat",
+                "body": {
+                    "topic": "Artificial Intelligence",
+                    "question": "What is machine learning?"
+                }
+            }
         )
     
-    try:
-        answer = ask_question_langchain(request.topic, request.question)
+    # Handle POST request
+    if request.method == "POST":
+        # Check if GROQ API key is configured
+        if not os.getenv("GROQ_API_KEY"):
+            raise HTTPException(
+                status_code=500, 
+                detail="GROQ_API_KEY is not configured. Please set up your API key."
+            )
         
-        return ChatResponse(
-            topic=request.topic,
-            question=request.question,
-            answer=answer
-        )
-    except ValueError as e:
-        if "GROQ_API_KEY" in str(e):
-            raise HTTPException(status_code=500, detail="GROQ API key configuration error")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
+        # Validate that we have a request body
+        if chat_request is None:
+            raise HTTPException(
+                status_code=400, 
+                detail="Request body is required. Please provide 'topic' and 'question' in JSON format."
+            )
+        
+        try:
+            print(f"Processing chat request - Topic: {chat_request.topic}, Question: {chat_request.question}")
+            answer = ask_question_langchain(chat_request.topic, chat_request.question)
+            print(f"Generated answer length: {len(answer)} characters")
+            
+            return ChatResponse(
+                topic=chat_request.topic,
+                question=chat_request.question,
+                answer=answer
+            )
+        except ValueError as e:
+            print(f"ValueError: {e}")
+            if "GROQ_API_KEY" in str(e):
+                raise HTTPException(status_code=500, detail="GROQ API key configuration error")
+            raise HTTPException(status_code=400, detail=str(e))
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            raise HTTPException(status_code=500, detail=f"Error processing chat request: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn
