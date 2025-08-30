@@ -2,7 +2,6 @@
 """
 Startup script for the Quick o Pedia backend server.
 """
-
 import uvicorn
 import os
 from dotenv import load_dotenv

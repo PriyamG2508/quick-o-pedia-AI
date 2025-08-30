@@ -8,7 +8,7 @@ import { api, ApiError } from "@/lib/api"
 interface ChatModalProps {
   topic: string
   messages: ChatMessage[]
-  setMessages: (messages: ChatMessage[]) => void
+  setMessages: (messages: ChatMessage[] | ((prev: ChatMessage[]) => ChatMessage[])) => void
   onClose: () => void
 }
 
@@ -35,7 +35,7 @@ export default function ChatModal({ topic, messages, setMessages, onClose }: Cha
       timestamp: new Date(),
     }
 
-    setMessages(prev => [...prev, userMessage])
+    setMessages((prev: ChatMessage[]) => [...prev, userMessage])
     setInput("")
     setIsTyping(true)
 
@@ -48,7 +48,7 @@ export default function ChatModal({ topic, messages, setMessages, onClose }: Cha
         content: response.answer,
         timestamp: new Date(),
       }
-      setMessages(prev => [...prev, aiMessage])
+      setMessages((prev: ChatMessage[]) => [...prev, aiMessage])
     } catch (err) {
       let errorContent = "Sorry, I'm having trouble connecting to the server. Please try again."
       
@@ -68,7 +68,7 @@ export default function ChatModal({ topic, messages, setMessages, onClose }: Cha
         content: errorContent,
         timestamp: new Date(),
       }
-      setMessages(prev => [...prev, errorMessage])
+      setMessages((prev: ChatMessage[]) => [...prev, errorMessage])
     } finally {
       setIsTyping(false)
     }
