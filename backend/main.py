@@ -102,7 +102,7 @@ async def scrape_wikipedia_endpoint(request: ScrapeRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error scraping Wikipedia: {str(e)}")
 
-@app.get("/chat", response_model=ChatResponse, tags=["AI Chat"])
+@app.post("/chat", response_model=ChatResponse, tags=["AI Chat"])
 async def chat_with_wikipedia(request: ChatRequest):
     """
     Ask a question about a Wikipedia topic and get an AI-generated answer.
