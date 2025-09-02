@@ -2,7 +2,7 @@
 
 export const config = {
   // Backend API URL - update this to match your backend server
-  apiUrl: process.env.NEXT_PUBLIC_API_URL_NEW || 'http://localhost:8000',
+  apiUrl: process.env.NEXT_PUBLIC_API_URL|| 'http://localhost:8000',
   
   // App settings
   appName: 'Quick o Pedia',
