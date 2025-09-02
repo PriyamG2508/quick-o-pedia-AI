@@ -81,9 +81,7 @@ def health_check():
 
 @app.post("/scrape", response_model=ScrapeResponse, tags=["Wikipedia"])
 async def scrape_wikipedia_endpoint(request: ScrapeRequest):
-    """
-    Scrape a Wikipedia page for the given topic.
-    """
+    """Scrape a Wikipedia page for the given topic."""
     try:
         content = scrape_wikipedia(request.topic)
         if not content:
